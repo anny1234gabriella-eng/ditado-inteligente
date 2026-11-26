@@ -1,0 +1,588 @@
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ditado Inteligente</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:#243447;font-family:Arial}
+header{background:#173b57;color:white;text-align:center;padding:25px}
+main{max-width:1000px;margin:25px auto;padding:15px}
+.card{background:white;border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 3px 12px #0001}
+h2{color:#173b57}
+label{display:block;font-weight:bold;margin:12px 0 6px}
+input,textarea,select{width:100%;padding:12px;border:1px solid #ccd5df;border-radius:8px;font-size:15px}
+textarea{min-height:130px}
+button{padding:12px 16px;border:0;border-radius:8px;background:#2475a5;color:white;font-weight:bold;cursor:pointer;margin:5px 3px}
+.secondary{background:#e5edf3;color:#173b57}
+.danger{background:#bd4545}
+.success{background:#168653}
+.hidden{display:none}
+.timer{font-size:36px;font-weight:bold;color:#2475a5}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{background:#edf4f8;padding:15px;border-radius:9px}
+.stat strong{display:block;font-size:24px;color:#173b57}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left;font-size:13px}
+.tablewrap{overflow-x:auto}
+.info{background:#edf5fa;padding:14px;border-radius:9px}
+@media(max-width:650px){.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🎧 DITADO INTELIGENTE</h1>
+<p>Avaliação de digitação, ortografia e desempenho</p>
+</header>
+
+<main>
+
+<div class="card">
+<button onclick="show('colaborador')">Área do colaborador</button>
+<button class="secondary" onclick="show('login')">Administrador</button>
+</div>
+
+<!-- COLABORADOR -->
+<section id="colaborador">
+
+<div class="card">
+<h2>Realizar avaliação</h2>
+
+<label>Nome do colaborador</label>
+<input id="nome" placeholder="Digite seu nome">
+
+<label>Selecione o ditado</label>
+<select id="ditado">
+<option value="">Selecione uma avaliação</option>
+</select>
+
+<div class="info">
+Aguarde a pessoa responsável iniciar a leitura.
+Digite tudo o que ouvir, incluindo acentos e pontuação.
+O cronômetro começa na primeira tecla e pausa após 3 segundos sem digitação.
+</div>
+
+<p>Tempo ativo de digitação:</p>
+<div class="timer" id="tempo">00:00</div>
+
+<label>Transcrição</label>
+<textarea id="resposta" disabled
+placeholder="Digite aqui o texto ditado..."></textarea>
+
+<button onclick="iniciar()" id="btnInicio">Iniciar</button>
+<button class="success" onclick="finalizar()" id="btnFim" disabled>Finalizar avaliação</button>
+<button class="secondary" onclick="limpar()">Limpar</button>
+
+<div id="resultado"></div>
+</div>
+
+<div class="card">
+<h2>Meu histórico</h2>
+<input id="buscarNome" placeholder="Digite seu nome">
+<button onclick="historicoIndividual()">Consultar histórico</button>
+<div id="meuHistorico"></div>
+</div>
+
+</section>
+
+<!-- LOGIN -->
+<section id="login" class="hidden">
+<div class="card">
+<h2>Acesso administrativo</h2>
+<label>Senha</label>
+<input id="senha" type="password">
+<button onclick="entrar()">Entrar</button>
+<p id="erroLogin"></p>
+<p>Senha inicial: 1234</p>
+</div>
+</section>
+
+<!-- ADMIN -->
+<section id="admin" class="hidden">
+
+<div class="card">
+<h2>Painel administrativo</h2>
+<button class="secondary" onclick="sair()">Sair</button>
+
+<div class="stats">
+<div class="stat">Avaliações<strong id="total">0</strong></div>
+<div class="stat">Nota média<strong id="media">0</strong></div>
+<div class="stat">Erros médios<strong id="errosMedios">0</strong></div>
+<div class="stat">Tempo médio<strong id="tempoMedio">00:00</strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Cadastrar ditado</h2>
+
+<label>Nome da avaliação</label>
+<input id="nomeDitado" placeholder="Ex.: Ditado de laudos">
+
+<label>Texto correto (gabarito)</label>
+<textarea id="textoDitado" placeholder="Cole o texto que será lido em voz alta"></textarea>
+
+<button onclick="cadastrarDitado()">Cadastrar texto</button>
+
+<div id="listaDitados"></div>
+</div>
+
+<div class="card">
+<h2>Configurações</h2>
+<label>Meta de palavras por minuto</label>
+<input type="number" id="meta" value="40">
+<button onclick="salvarMeta()">Salvar</button>
+</div>
+
+<div class="card">
+<h2>Ranking da equipe</h2>
+<div id="ranking" class="tablewrap"></div>
+</div>
+
+<div class="card">
+<h2>Histórico geral</h2>
+<div id="tabela" class="tablewrap"></div>
+<button onclick="exportar()">Exportar Excel (CSV)</button>
+<button class="danger" onclick="apagarResultados()">Apagar resultados</button>
+</div>
+
+<div class="card">
+<h2>Alterar senha administrativa</h2>
+<input id="senhaAtual" type="password" placeholder="Senha atual">
+<input id="senhaNova" type="password" placeholder="Nova senha">
+<button onclick="alterarSenha()">Alterar senha</button>
+<p id="mensagemSenha"></p>
+</div>
+
+<div class="info">
+Os dados desta versão ficam armazenados apenas neste navegador e dispositivo. Para utilizar em vários computadores, será necessário implementar um banco de dados compartilhado e autenticação segura.
+</div>
+
+</section>
+
+</main>
+
+<script>
+const ler = (chave, padrao) => {
+ try { return JSON.parse(localStorage.getItem(chave)) ?? padrao; }
+ catch { return padrao; }
+};
+
+let ditados = ler("ditados",[]);
+let resultados = ler("resultados",[]);
+let senhaAdmin = localStorage.getItem("senhaAdmin") || "1234";
+let meta = Number(localStorage.getItem("meta")) || 40;
+
+let ativo = false;
+let inicio = null;
+let ultimaTecla = null;
+let tempoAtivo = 0;
+let pausa = null;
+let relogio = null;
+let atual = null;
+
+function salvar(){
+ localStorage.setItem("ditados",JSON.stringify(ditados));
+ localStorage.setItem("resultados",JSON.stringify(resultados));
+}
+
+function show(secao){
+ ["colaborador","login","admin"].forEach(id=>{
+  document.getElementById(id).classList.add("hidden");
+ });
+ document.getElementById(secao).classList.remove("hidden");
+ if(secao==="admin") atualizarPainel();
+}
+
+function entrar(){
+ if(document.getElementById("senha").value===senhaAdmin){
+  show("admin");
+  document.getElementById("erroLogin").textContent="";
+ }else{
+  document.getElementById("erroLogin").textContent="Senha incorreta!";
+ }
+}
+
+function sair(){show("colaborador");}
+
+function cadastrarDitado(){
+ const nome=document.getElementById("nomeDitado").value.trim();
+ const texto=document.getElementById("textoDitado").value.trim();
+
+ if(!nome || !texto){
+  alert("Preencha o nome e o texto.");
+  return;
+ }
+
+ ditados.push({
+  id:String(Date.now()),
+  nome,
+  texto
+ });
+
+ salvar();
+ document.getElementById("nomeDitado").value="";
+ document.getElementById("textoDitado").value="";
+ atualizarDitados();
+ alert("Ditado cadastrado!");
+}
+
+function atualizarDitados(){
+ const select=document.getElementById("ditado");
+ const anterior=select.value;
+ select.innerHTML='<option value="">Selecione uma avaliação</option>';
+
+ ditados.forEach(d=>{
+  const o=document.createElement("option");
+  o.value=d.id;
+  o.textContent=d.nome;
+  select.appendChild(o);
+ });
+
+ select.value=anterior;
+
+ document.getElementById("listaDitados").innerHTML=
+ ditados.map(d=>`
+ <p>${escapar(d.nome)}
+ <button class="danger" onclick="excluirDitado('${d.id}')">Excluir</button>
+ </p>`).join("");
+}
+
+function excluirDitado(id){
+ if(!confirm("Excluir este ditado?"))return;
+ ditados=ditados.filter(d=>d.id!==id);
+ salvar();
+ atualizarDitados();
+}
+
+function iniciar(){
+ const nome=document.getElementById("nome").value.trim();
+ const id=document.getElementById("ditado").value;
+
+ if(!nome){alert("Digite seu nome.");return;}
+ atual=ditados.find(d=>d.id===id);
+ if(!atual){alert("Selecione um ditado.");return;}
+ if(ativo)return;
+
+ ativo=true;
+ inicio=null;
+ ultimaTecla=null;
+ tempoAtivo=0;
+
+ const campo=document.getElementById("resposta");
+ campo.value="";
+ campo.disabled=false;
+ campo.focus();
+
+ document.getElementById("btnInicio").disabled=true;
+ document.getElementById("btnFim").disabled=false;
+ document.getElementById("resultado").innerHTML="";
+
+ campo.oninput=()=>{
+  if(!ativo)return;
+  const agora=Date.now();
+
+  if(inicio===null){
+   inicio=agora;
+  }else if(ultimaTecla!==null){
+   tempoAtivo+=Math.min(agora-ultimaTecla,3000);
+  }
+
+  ultimaTecla=agora;
+  clearTimeout(pausa);
+  pausa=setTimeout(()=>ultimaTecla=null,3000);
+  atualizarRelogio();
+ };
+}
+
+function atualizarRelogio(){
+ clearInterval(relogio);
+ relogio=setInterval(()=>{
+  let ms=tempoAtivo;
+  if(ultimaTecla!==null){
+   ms+=Math.min(Date.now()-ultimaTecla,3000);
+  }
+  document.getElementById("tempo").textContent=
+  formatar(Math.floor(ms/1000));
+ },250);
+}
+
+function formatar(segundos){
+ return String(Math.floor(segundos/60)).padStart(2,"0")+":"+
+ String(segundos%60).padStart(2,"0");
+}
+
+function palavras(texto){
+ return texto.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu)||[];
+}
+
+function semAcento(texto){
+ return texto.normalize("NFD")
+ .replace(/[\u0300-\u036f]/g,"").toLowerCase();
+}
+
+function distancia(a,b){
+ let anterior=Array.from({length:b.length+1},(_,i)=>i);
+
+ for(let i=1;i<=a.length;i++){
+  let atual=[i];
+  for(let j=1;j<=b.length;j++){
+   atual[j]=Math.min(
+    atual[j-1]+1,
+    anterior[j]+1,
+    anterior[j-1]+(a[i-1]===b[j-1]?0:1)
+   );
+  }
+  anterior=atual;
+ }
+ return anterior[b.length];
+}
+
+function comparar(original,digitado){
+ const a=palavras(original);
+ const b=palavras(digitado);
+ const an=a.map(semAcento);
+ const bn=b.map(semAcento);
+
+ const errosPalavras=distancia(an,bn);
+
+ let acentos=0;
+ for(let i=0;i<Math.min(a.length,b.length);i++){
+  if(an[i]===bn[i] && a[i]!==b[i])acentos++;
+ }
+
+ const grafia=Math.max(0,errosPalavras-acentos);
+
+ const pontOriginal=(original.match(/[.,;:!?()[\]{}"“”‘’\-–—]/g)||[]).join("");
+ const pontDigitada=(digitado.match(/[.,;:!?()[\]{}"“”‘’\-–—]/g)||[]).join("");
+ const errosPont=distancia(pontOriginal.split(""),pontDigitada.split(""));
+
+ return {
+  palavrasOriginal:a.length,
+  palavrasDigitadas:b.length,
+  grafia,
+  acentos,
+  errosPalavras:errosPalavras,
+  pont:errosPont,
+  precisao:Math.max(0,100-errosPalavras/Math.max(1,a.length)*100),
+  quantidadeErros:errosPalavras+errosPont
+ };
+}
+
+function finalizar(){
+ if(!ativo){alert("Inicie uma avaliação.");return;}
+ if(inicio===null){alert("Digite pelo menos uma letra.");return;}
+
+ ativo=false;
+ clearInterval(relogio);
+ clearTimeout(pausa);
+
+ let ms=tempoAtivo;
+ if(ultimaTecla!==null)ms+=Math.min(Date.now()-ultimaTecla,3000);
+
+ const segundos=Math.max(1,ms/1000);
+ const digitado=document.getElementById("resposta").value;
+ const c=comparar(atual.texto,digitado);
+
+ const velocidade=c.palavrasDigitadas/(segundos/60);
+
+ const pontosGrafia=Math.max(0,40-c.grafia/Math.max(1,c.palavrasOriginal)*40);
+ const pontosAcentos=Math.max(0,20-c.acentos/Math.max(1,c.palavrasOriginal)*20);
+
+ const totalPont=(atual.texto.match(/[.,;:!?()[\]{}"“”‘’\-–—]/g)||[]).length;
+ const pontosPont=Math.max(0,10-c.pont/Math.max(1,totalPont)*10);
+
+ const pontosVelocidade=Math.min(20,velocidade/meta*20);
+ const pontosPrecisao=c.precisao/10;
+
+ const nota=Math.max(0,Math.min(100,
+ pontosGrafia+pontosAcentos+pontosPont+pontosVelocidade+pontosPrecisao
+ ));
+
+ const registro={
+  data:new Date().toLocaleString("pt-BR"),
+  nome:document.getElementById("nome").value.trim(),
+  ditado:atual.nome,
+  tempo:segundos,
+  grafia:c.grafia,
+  acentos:c.acentos,
+  pont:c.pont,
+  erros:c.quantidadeErros,
+  velocidade,
+  precisao:c.precisao,
+  nota
+ };
+
+ resultados.push(registro);
+ salvar();
+
+ document.getElementById("resposta").disabled=true;
+ document.getElementById("resposta").oninput=null;
+ document.getElementById("btnInicio").disabled=false;
+ document.getElementById("btnFim").disabled=true;
+ document.getElementById("tempo").textContent=formatar(Math.round(segundos));
+
+ document.getElementById("resultado").innerHTML=`
+ <div class="card">
+ <h2>Resultado da avaliação</h2>
+ <div class="stats">
+  <div class="stat">Nota<strong>${nota.toFixed(1)}</strong></div>
+  <div class="stat">Erros<strong>${c.quantidadeErros}</strong></div>
+  <div class="stat">Precisão<strong>${c.precisao.toFixed(1)}%</strong></div>
+  <div class="stat">Velocidade<strong>${velocidade.toFixed(1)} PPM</strong></div>
+ </div>
+ <p>Erros de grafia: ${c.grafia}</p>
+ <p>Erros de acentuação: ${c.acentos}</p>
+ <p>Erros de pontuação: ${c.pont}</p>
+ <p>Tempo ativo: ${formatar(Math.round(segundos))}</p>
+ </div>`;
+
+ historicoIndividual();
+}
+
+function limpar(){
+ if(ativo && !confirm("Cancelar avaliação?"))return;
+ ativo=false;
+ clearInterval(relogio);
+ clearTimeout(pausa);
+ inicio=null;ultimaTecla=null;tempoAtivo=0;
+ document.getElementById("resposta").value="";
+ document.getElementById("resposta").disabled=true;
+ document.getElementById("btnInicio").disabled=false;
+ document.getElementById("btnFim").disabled=true;
+ document.getElementById("tempo").textContent="00:00";
+ document.getElementById("resultado").innerHTML="";
+}
+
+function historicoIndividual(){
+ const nome=(document.getElementById("buscarNome").value||
+ document.getElementById("nome").value).trim().toLowerCase();
+
+ if(!nome)return;
+
+ const lista=resultados.filter(r=>r.nome.toLowerCase()===nome);
+
+ document.getElementById("meuHistorico").innerHTML=`
+ <div style="overflow-x:auto">
+ <table>
+ <tr><th>Data</th><th>Ditado</th><th>Nota</th><th>Erros</th><th>Tempo</th></tr>
+ ${lista.map(r=>`<tr>
+ <td>${escapar(r.data)}</td>
+ <td>${escapar(r.ditado)}</td>
+ <td>${r.nota.toFixed(1)}</td>
+ <td>${r.erros}</td>
+ <td>${formatar(Math.round(r.tempo))}</td>
+ </tr>`).join("")}
+ </table></div>`;
+}
+
+function salvarMeta(){
+ meta=Math.max(1,Number(document.getElementById("meta").value)||40);
+ localStorage.setItem("meta",meta);
+ alert("Meta atualizada!");
+}
+
+function atualizarPainel(){
+ const total=resultados.length;
+ const media=chave=>total?
+ resultados.reduce((s,r)=>s+r[chave],0)/total:0;
+
+ document.getElementById("total").textContent=total;
+ document.getElementById("media").textContent=total?media("nota").toFixed(1):"0";
+ document.getElementById("errosMedios").textContent=total?media("erros").toFixed(1):"0";
+ document.getElementById("tempoMedio").textContent=formatar(Math.round(media("tempo")));
+
+ const pessoas={};
+ resultados.forEach(r=>{
+  if(!pessoas[r.nome])pessoas[r.nome]=[];
+  pessoas[r.nome].push(r.nota);
+ });
+
+ const ranking=Object.entries(pessoas).map(([nome,notas])=>({
+  nome,nota:notas.reduce((a,b)=>a+b,0)/notas.length
+ })).sort((a,b)=>b.nota-a.nota);
+
+ document.getElementById("ranking").innerHTML=`
+ <table><tr><th>Posição</th><th>Colaborador</th><th>Média</th></tr>
+ ${ranking.map((r,i)=>`<tr>
+ <td>${i+1}º</td><td>${escapar(r.nome)}</td>
+ <td>${r.nota.toFixed(1)}</td></tr>`).join("")}
+ </table>`;
+
+ document.getElementById("tabela").innerHTML=`
+ <table><tr><th>Data</th><th>Colaborador</th><th>Ditado</th>
+ <th>Nota</th><th>Grafia</th><th>Acentos</th><th>Pontuação</th><th>Tempo</th></tr>
+ ${[...resultados].reverse().map(r=>`<tr>
+ <td>${escapar(r.data)}</td><td>${escapar(r.nome)}</td>
+ <td>${escapar(r.ditado)}</td><td>${r.nota.toFixed(1)}</td>
+ <td>${r.grafia}</td><td>${r.acentos}</td><td>${r.pont}</td>
+ <td>${formatar(Math.round(r.tempo))}</td></tr>`).join("")}
+ </table>`;
+
+ document.getElementById("meta").value=meta;
+ atualizarDitados();
+}
+
+function exportar(){
+ if(!resultados.length){alert("Sem resultados.");return;}
+
+ const cabecalho=["Data","Colaborador","Ditado","Nota","Erros grafia","Erros acentos","Erros pontuação","Precisão","PPM","Tempo ativo"];
+ const linhas=resultados.map(r=>[
+ r.data,r.nome,r.ditado,r.nota.toFixed(1),r.grafia,r.acentos,
+ r.pont,r.precisao.toFixed(1),r.velocidade.toFixed(1),r.tempo
+ ]);
+
+ const csv=[cabecalho,...linhas].map(l=>
+ l.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(";")
+ ).join("\r\n");
+
+ const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download="relatorio_ditado.csv";a.click();
+ URL.revokeObjectURL(url);
+}
+
+function apagarResultados(){
+ if(!confirm("Apagar todos os resultados?"))return;
+ resultados=[];
+ salvar();
+ atualizarPainel();
+}
+
+function alterarSenha(){
+ const atual=document.getElementById("senhaAtual").value;
+ const nova=document.getElementById("senhaNova").value;
+
+ if(atual!==senhaAdmin){
+  document.getElementById("mensagemSenha").textContent="Senha atual incorreta.";
+  return;
+ }
+
+ if(nova.length<6){
+  document.getElementById("mensagemSenha").textContent="Use pelo menos 6 caracteres.";
+  return;
+ }
+
+ senhaAdmin=nova;
+ localStorage.setItem("senhaAdmin",nova);
+ document.getElementById("mensagemSenha").textContent="Senha alterada!";
+ document.getElementById("senhaAtual").value="";
+ document.getElementById("senhaNova").value="";
+}
+
+function escapar(texto){
+ return String(texto).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",
+ '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+atualizarDitados();
+</script>
+</body>
+</html>
